@@ -342,6 +342,18 @@ namespace DeskFrame
             uiFlyout.IsOpen = true;
         }
 
+        private void SetRGBTitleText(bool RGBactive)
+        {
+            if (RGBactive)
+            {
+
+            }
+            else
+            {
+
+            }
+        }
+
         private void BorderColorButton_Click(object sender, RoutedEventArgs e)
         {
             if (BorderEnabledCheckBox.IsChecked == false) return;
@@ -374,6 +386,12 @@ namespace DeskFrame
             _instance.ShowFileExtensionIcon = ShowFileExtensionIconCheckBox.IsChecked ?? false;
             _frame.UpdateIconVisibility();
         }
+
+        private void RGBTextTitleBarCheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+            _instance.ToggleRGBTitleText(RGBTextTitleBar.IsChecked ?? false);
+
+		}
 
         private void ShowHiddenFilesIconCheckBox_Checked(object sender, RoutedEventArgs e)
         {

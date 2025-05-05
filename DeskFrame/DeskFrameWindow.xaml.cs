@@ -51,6 +51,7 @@ namespace DeskFrame
         private bool _isBlack = true;
         private bool _checkForChages = false;
         private bool _canAutoClose = true;
+        private bool _rgbTitleText = false;
         private bool _isLocked = false;
         private bool _isOnEdge = false;
         private double _originalHeight;
@@ -59,7 +60,8 @@ namespace DeskFrame
         private ICollectionView _collectionView;
         private CancellationTokenSource _cts = new CancellationTokenSource();
         private CancellationTokenSource loadFilesCancellationToken = new CancellationTokenSource();
-        DeskFrameWindow _wOnLeft = null;
+		private readonly BackgroundWorker bwRGB = new() { WorkerSupportsCancellation = true};
+		DeskFrameWindow _wOnLeft = null;
         DeskFrameWindow _wOnRight = null;
         MenuItem nameMenuItem;
         MenuItem dateModifiedMenuItem;
@@ -198,8 +200,7 @@ namespace DeskFrame
         }
 
 
-
-        private IntPtr WndProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+		private IntPtr WndProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
             if (!(HwndSource.FromHwnd(hWnd).RootVisual is System.Windows.Window rootVisual))
                 return IntPtr.Zero;
@@ -254,9 +255,51 @@ namespace DeskFrame
                 }
             }
 
-            return IntPtr.Zero;
+			if (_rgbTitleText != Instance.RGBTextTitleBar)
+			{
+                _rgbTitleText = Instance.RGBTextTitleBar;
+				if (_rgbTitleText)
+				{
+					bwRGB.DoWork += BwRGB_DoWork;
+					bwRGB.RunWorkerAsync();
+				}
+				else
+				{
+					bwRGB.CancelAsync();
+				}
+			}
+
+			return IntPtr.Zero;
         }
-        private void ResizeBottomAnimation(double targetBottom, Interop.RECT rect, IntPtr lParam)
+
+
+		private async void BwRGB_DoWork(object? sender, DoWorkEventArgs e)
+		{
+			while (!bwRGB.CancellationPending)
+			{
+				int r = 0, g = 0, b = 255;
+				int step = 1;
+				for (int i = 0; i < 1530; i++)
+				{
+					Application.Current.Dispatcher.Invoke(() =>
+					{
+					    title.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString($"#{r:X2}{g:X2}{b:X2}"));
+					});
+
+					if (r < 255 && g == 0 && b == 0) r += step;
+					else if (r == 255 && g < 255 && b == 0) g += step;
+					else if (r > 0 && g == 255 && b == 0) r -= step;
+					else if (r == 0 && g == 255 && b < 255) b += step;
+					else if (r == 0 && g > 0 && b == 255) g -= step;
+					else if (r < 255 && g == 0 && b == 255) r += step;
+					else if (r == 255 && g == 0 && b > 0) b -= step;
+                    await Task.Delay(1);
+				}
+			}
+			bwRGB.DoWork -= BwRGB_DoWork;
+		}
+
+		private void ResizeBottomAnimation(double targetBottom, Interop.RECT rect, IntPtr lParam)
         {
             if (!_canAnimate) return;
             var animation = new DoubleAnimation
